@@ -1,0 +1,204 @@
+CREATE TABLE "Auto"(
+"Car_id" varchar(20) PRIMARY KEY,
+"Type" varchar(20),
+"Brand" varchar(20),
+"Model" varchar(20),
+"Year_of_issue" int,
+"Color" varchar(20)
+);
+ 
+CREATE TABLE "User"(
+"User_id" decimal(12) PRIMARY KEY,
+"Car_id" varchar(20) REFERENCES "Auto"("Car_id"),
+"First_name" varchar(20),
+"Last_name" varchar(20)
+);
+ 
+CREATE TABLE "Parking_card"(
+"Card_id" decimal(16) PRIMARY KEY,
+"User_id" decimal(12) REFERENCES "User"("User_id")
+);
+ 
+CREATE TABLE "Parking"(
+"Parking_id" int PRIMARY KEY,
+"Address" varchar(30),
+"Number_of_parking_spaces" int
+);
+ 
+CREATE TABLE "Tariff"(
+"Tariff_id" int PRIMARY KEY,
+"Cost_per_hour" int,
+"Description" varchar(100)
+);
+ 
+CREATE TABLE "Registration"(
+"Registration_id" int PRIMARY KEY,
+"Card_id" decimal(16) REFERENCES "Parking_card"("Card_id"),
+"Parking_id" int REFERENCES "Parking"("Parking_id"),
+"Entry_date" timestamp,
+"Exit_date" timestamp,
+"Total_time_of_parking_in_minutes" float
+);
+ 
+CREATE TABLE "Payment"(
+"Payment_id" int PRIMARY KEY,
+"Registration_id" int REFERENCES "Registration"("Registration_id"),
+"Tariff_id" int REFERENCES "Tariff"("Tariff_id"),
+"Total_time_of_parking_in_hours" float,
+"Total_amount_due" int
+);
+
+ALTER TABLE "User" ADD COLUMN gender varchar(6);
+
+ALTER TABLE "User" DROP COLUMN gender;
+
+ALTER TABLE "Registration" ALTER COLUMN "Entry_date" SET NOT NULL;
+
+INSERT INTO "Auto" ("Car_id","Type","Brand","Model","Year_of_issue","Color")
+VALUES('111AAA01','Sedan','Toyota','Camry',2020,'Black'),
+                ('222BBB02','Sedan','Audi','A6',2018,'Black'),
+                ('333CCC03', 'SUV', 'Lexus', 'LX 570', 2019, 'White'),
+	    ('555GGG05','Wagon','Mercedes-AMG','E63 S', 2020,'Blue');
+
+INSERT INTO "User" ("User_id","Car_id","First_name","Last_name")
+VALUES('111111111111','111AAA01','Zhasulan','Nurymov'),
+              ('222222222222','222BBB02', 'Anel', 'Aidosovna'),
+	  ('333333333333','333CCC03','Erkebulan','Nurymov'),
+	  ('444444444444','555GGG05','Daniyal','Darynov');
+
+INSERT INTO "Parking_card" ("Card_id","User_id")
+VALUES('1111111111110001','111111111111'),
+                ('2222222222220002','222222222222'),
+	    ('3333333333330003','333333333333'),
+	    ('4444444444440004','444444444444');
+
+INSERT INTO "Parking" ("Parking_id","Address","Number_of_parking_spaces")
+VALUES(0001,'Almaty, st.Rozybakiev 247a',1100),
+                (0002,'Almaty, st.Makatayev 127/1',1000),
+          	    (0003,'Astana, st.Kabanbai batyr 62',1100),
+	    (0004,'Almaty, st.Abai 1', 1000);
+
+INSERT INTO "Tariff" ("Tariff_id","Cost_per_hour","Description")
+VALUES(101,0,'First 15 minutes 0tg'),
+                (102,200,'15-60minutes 200tg'),
+	    (103,100,'For each subsequent hours 100tg');
+	  
+INSERT INTO "Registration" ("Registration_id","Card_id","Parking_id","Entry_date","Exit_date")
+VALUES(801,1111111111110001,1,'2020-11-29 11:05:58','2020-11-29 14:20:19'),
+                (802,2222222222220002,2,'2020-11-29 12:00:03','2020-11-29 12:14:09'),
+	    (803,3333333333330003,1,'2020-11-29 13:15:30','2020-11-29 14:14:03'),
+	    (804,4444444444440004,3,'2020-11-29 14:04:00','2020-11-29 19:20:50');
+
+UPDATE "Registration"
+SET "Total_time_of_parking_in_minutes"= (SELECT (EXTRACT(EPOCH FROM "Registration"."Exit_date") - EXTRACT(EPOCH FROM "Registration"."Entry_date" ))/60
+);
+
+INSERT INTO "Payment" ("Payment_id","Registration_id")
+VALUES(1001,801),
+                (2002,802),
+	    (3003,803),
+	    (4004,804);
+
+UPDATE "Payment"
+SET "Tariff_id"=101
+FROM "Registration"
+WHERE "Registration"."Total_time_of_parking_in_minutes"<16 AND  "Registration"."Registration_id"="Payment"."Registration_id";
+
+UPDATE "Payment"
+SET "Tariff_id"=102
+FROM "Registration"
+WHERE "Registration"."Total_time_of_parking_in_minutes">15 AND "Registration"."Total_time_of_parking_in_minutes"<61 AND "Registration"."Registration_id"="Payment"."Registration_id";
+
+UPDATE "Payment"
+SET "Tariff_id"=103
+FROM "Registration"
+WHERE "Registration"."Total_time_of_parking_in_minutes">60 AND "Registration"."Registration_id"="Payment"."Registration_id";
+
+UPDATE "Payment"
+SET "Total_time_of_parking_in_hours"= CEILING("Total_time_of_parking_in_minutes"/60)
+FROM "Registration"
+WHERE "Registration"."Registration_id"="Payment"."Registration_id";
+
+UPDATE "Payment"
+SET "Total_amount_due"="Total_time_of_parking_in_hours"*"Tariff"."Cost_per_hour"
+FROM "Tariff"
+WHERE "Tariff"."Tariff_id"="Payment"."Tariff_id";
+
+DELETE FROM "Parking"
+WHERE "Parking_id"=4;
+
+SELECT COUNT (DISTINCT "Type")
+ FROM "Auto";
+ 
+ SELECT "Registration_id"
+FROM "Registration"
+WHERE "Entry_date" BETWEEN '2020-11-29 13:13:00' AND '2020-11-29 14:15:32';
+
+SELECT MAX ("Entry_date")
+FROM "Registration";
+
+SELECT MIN ("Exit_date")
+FROM "Registration";
+
+SELECT SUM ("Total_amount_due")
+FROM "Payment"
+WHERE "Payment_id">2000;
+
+SELECT "User_id"
+FROM "User"
+WHERE "Last_name" LIKE 'Nurym%';
+
+SELECT "Car_id"
+FROM "Auto"
+WHERE "Color" = 'Black';
+
+SELECT "Model"
+FROM "Auto"
+WHERE "Brand" IN ('Toyota', 'BMW');
+
+SELECT "User_id"
+FROM "User"
+WHERE length("First_name") < 9;
+
+SELECT "Parking_id"
+FROM "Payment"
+INNER JOIN "Registration"
+ON "Payment"."Registration_id" = "Registration"."Registration_id";
+
+SELECT "User_id"
+FROM "Parking_card"
+LEFT JOIN "Registration"
+ON "Parking_card"."Card_id" = "Registration"."Card_id";
+
+
+SELECT "Address"
+FROM "Parking"
+RIGHT JOIN "Registration"
+ON "Parking"."Parking_id" = "Registration"."Parking_id";
+
+SELECT "Address", "Registration_id"
+FROM "Parking"
+FULL JOIN "Registration"
+ON "Parking"."Parking_id" = "Registration"."Parking_id";
+
+SELECT "Last_name"
+FROM "User"
+WHERE Length("First_name")>8;
+
+SELECT "User_id"
+FROM "User"
+WHERE EXISTS
+(SELECT "Type" FROM "Auto" WHERE "Type"='Sport car');
+
+
+
+
+
+
+
+
+
+
+
+
+
